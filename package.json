@@ -29,7 +29,7 @@
   },
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && copy nodes\\Bitrix24\\bitrix24.svg dist\\nodes\\Bitrix24\\bitrix24.svg",
     "dev": "tsc --watch",
     "format": "prettier nodes credentials --write",
     "lint": "eslint nodes credentials package.json",
