@@ -257,7 +257,8 @@ export async function executeDocumentGenerator(
 		const res = await bitrix24ApiRequest.call(
 			this, 'POST', 'crm.documentgenerator.template.get', { id },
 		);
-		responseData = (res.result as IDataObject)?.template ?? (res.result as IDataObject);
+		const resultObj = res.result as IDataObject;
+		responseData = (resultObj?.template as IDataObject) ?? resultObj;
 	}
 
 	else if (operation === 'generate') {
@@ -284,7 +285,8 @@ export async function executeDocumentGenerator(
 		const res = await bitrix24ApiRequest.call(
 			this, 'POST', 'crm.documentgenerator.document.add', body,
 		);
-		responseData = (res.result as IDataObject)?.document ?? { id: res.result, success: true };
+		const resultObj = res.result as IDataObject;
+		responseData = (resultObj?.document as IDataObject) ?? { id: res.result, success: true };
 	}
 
 	else if (operation === 'getDocument') {
@@ -292,7 +294,8 @@ export async function executeDocumentGenerator(
 		const res = await bitrix24ApiRequest.call(
 			this, 'POST', 'crm.documentgenerator.document.get', { id },
 		);
-		responseData = (res.result as IDataObject)?.document ?? (res.result as IDataObject);
+		const resultObj = res.result as IDataObject;
+		responseData = (resultObj?.document as IDataObject) ?? resultObj;
 	}
 
 	else if (operation === 'listDocuments') {
@@ -313,7 +316,8 @@ export async function executeDocumentGenerator(
 			const res = await bitrix24ApiRequest.call(
 				this, 'POST', 'crm.documentgenerator.document.list', { ...body, count: limit },
 			);
-			responseData = { items: (res.result as IDataObject)?.items ?? res.result, total: res.total };
+			const resultObj = res.result as IDataObject;
+			responseData = { items: (resultObj?.items as IDataObject[]) ?? res.result, total: res.total };
 		}
 	}
 
@@ -322,12 +326,13 @@ export async function executeDocumentGenerator(
 		const res = await bitrix24ApiRequest.call(
 			this, 'POST', 'crm.documentgenerator.document.get', { id },
 		);
-		const doc = (res.result as IDataObject)?.document ?? (res.result as IDataObject);
+		const resultObj = res.result as IDataObject;
+		const doc = (resultObj?.document as IDataObject) ?? resultObj;
 		responseData = {
 			documentId: id,
-			downloadUrl: doc.pdfUrl ?? doc.downloadUrl ?? doc.URL,
-			title: doc.title ?? doc.TITLE,
-			status: doc.status,
+			downloadUrl: (doc.pdfUrl ?? doc.downloadUrl ?? doc.URL) as string,
+			title: (doc.title ?? doc.TITLE) as string,
+			status: doc.status as string,
 		};
 	}
 

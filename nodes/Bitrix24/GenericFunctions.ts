@@ -6,6 +6,7 @@ import {
 	IHttpRequestMethods,
 	IRequestOptions,
 	NodeApiError,
+	JsonObject,
 } from 'n8n-workflow';
 
 // ─── Auth helper ─────────────────────────────────────────────────────────────
@@ -55,14 +56,14 @@ export async function bitrix24ApiRequest(
 		const response = await this.helpers.request(options);
 
 		if (response.error) {
-			throw new NodeApiError(this.getNode(), response, {
-				message: response.error_description || response.error,
+			throw new NodeApiError(this.getNode(), response as unknown as JsonObject, {
+				message: String(response.error_description ?? response.error),
 			});
 		}
 
 		return response;
 	} catch (error) {
-		throw new NodeApiError(this.getNode(), error as IDataObject);
+		throw new NodeApiError(this.getNode(), error as unknown as JsonObject);
 	}
 }
 
@@ -121,7 +122,8 @@ export async function getDealCategories(
 	const response = await bitrix24ApiRequest.call(this, 'POST', 'crm.category.list', {
 		entityTypeId: 2, // 2 = Deal
 	});
-	const items = (response.result?.categories as IDataObject[]) || [];
+	const resultObj = response.result as IDataObject;
+	const items = (resultObj?.categories as IDataObject[]) || [];
 	return [
 		{ name: 'General (Default Pipeline)', value: '0' },
 		...items.map((c) => ({

@@ -7,7 +7,7 @@ import {
 	IWebhookResponseData,
 } from 'n8n-workflow';
 
-import { bitrix24ApiRequest, getBaseUrl } from './GenericFunctions';
+import { bitrix24ApiRequest } from './GenericFunctions';
 
 export class Bitrix24Trigger implements INodeType {
 	description: INodeTypeDescription = {
@@ -227,21 +227,48 @@ export class Bitrix24Trigger implements INodeType {
 			const data = body.data as IDataObject;
 			const eventName = (body.event as string ?? '').toUpperCase();
 
+			// Use a direct HTTP request here since IWebhookFunctions is not compatible
+			// with bitrix24ApiRequest (which requires IExecuteFunctions context).
+			// We re-implement a minimal fetch using this.helpers.request directly.
+			const credentials = await this.getCredentials('bitrix24Api');
+			const mode = credentials.authMode as string;
+			const baseUrl = mode === 'webhook'
+				? (credentials.webhookUrl as string).replace(/\/$/, '')
+				: `https://${(credentials.domain as string).replace(/\/$/, '')}/rest`;
+
+			const callMethod = async (method: string, params: IDataObject): Promise<IDataObject> => {
+				const qs: IDataObject = {};
+				if (mode === 'oauth2') qs.auth = credentials.accessToken;
+				const response = await this.helpers.request({
+					method: 'POST',
+					uri: `${baseUrl}/${method}.json`,
+					qs,
+					body: params,
+					json: true,
+				});
+				return response as IDataObject;
+			};
+
 			try {
-				if (eventName.includes('DEAL') && data.FIELDS?.ID) {
-					const res = await bitrix24ApiRequest.call(this, 'POST', 'crm.deal.get', { id: data.FIELDS.ID });
+				const fields = data.FIELDS as IDataObject | undefined;
+				const fieldsAfter = data.FIELDS_AFTER as IDataObject | undefined;
+				const entityId = fields?.ID as string | undefined;
+				const taskId = fieldsAfter?.ID as string | undefined;
+
+				if (eventName.includes('DEAL') && entityId) {
+					const res = await callMethod('crm.deal.get', { id: entityId });
 					outputData.fullObject = res.result;
-				} else if (eventName.includes('LEAD') && data.FIELDS?.ID) {
-					const res = await bitrix24ApiRequest.call(this, 'POST', 'crm.lead.get', { id: data.FIELDS.ID });
+				} else if (eventName.includes('LEAD') && entityId) {
+					const res = await callMethod('crm.lead.get', { id: entityId });
 					outputData.fullObject = res.result;
-				} else if (eventName.includes('CONTACT') && data.FIELDS?.ID) {
-					const res = await bitrix24ApiRequest.call(this, 'POST', 'crm.contact.get', { id: data.FIELDS.ID });
+				} else if (eventName.includes('CONTACT') && entityId) {
+					const res = await callMethod('crm.contact.get', { id: entityId });
 					outputData.fullObject = res.result;
-				} else if (eventName.includes('COMPANY') && data.FIELDS?.ID) {
-					const res = await bitrix24ApiRequest.call(this, 'POST', 'crm.company.get', { id: data.FIELDS.ID });
+				} else if (eventName.includes('COMPANY') && entityId) {
+					const res = await callMethod('crm.company.get', { id: entityId });
 					outputData.fullObject = res.result;
-				} else if (eventName.includes('TASK') && data.FIELDS_AFTER?.ID) {
-					const res = await bitrix24ApiRequest.call(this, 'POST', 'tasks.task.get', { taskId: data.FIELDS_AFTER.ID });
+				} else if (eventName.includes('TASK') && taskId) {
+					const res = await callMethod('tasks.task.get', { taskId });
 					outputData.fullObject = (res.result as IDataObject)?.task;
 				}
 			} catch (_) {

@@ -5,6 +5,7 @@ import {
 	INodeType,
 	INodeTypeDescription,
 	NodeOperationError,
+	IDataObject,
 } from 'n8n-workflow';
 
 // ── CRM ───────────────────────────────────────────────────────────────────────
@@ -252,7 +253,7 @@ export class Bitrix24 implements INodeType {
 			try {
 				const resource = this.getNodeParameter('resource', i) as string;
 				const operation = this.getNodeParameter('operation', i) as string;
-				let responseData: Record<string, unknown> = {};
+				let responseData: IDataObject = {};
 
 				switch (resource) {
 					case 'deal':               responseData = await executeDeal.call(this, operation, i); break;

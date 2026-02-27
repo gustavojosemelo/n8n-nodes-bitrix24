@@ -237,7 +237,9 @@ export async function executeTask(
 			fields.TAGS = (fields.TAGS as string).split(',').map((t) => t.trim());
 		}
 		const res = await bitrix24ApiRequest.call(this, 'POST', 'tasks.task.add', { fields });
-		responseData = { id: (res.result as IDataObject)?.task?.id ?? res.result, success: true };
+		const taskResult = res.result as IDataObject;
+		const taskObj = taskResult?.task as IDataObject | undefined;
+		responseData = { id: taskObj?.id ?? res.result, success: true };
 	}
 	else if (operation === 'get') {
 		const id = this.getNodeParameter('taskId', i) as string;
