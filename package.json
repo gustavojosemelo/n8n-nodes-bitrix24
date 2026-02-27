@@ -1,6 +1,6 @@
 {
   "name": "@gustavojosemelo/n8n-nodes-bitrix24",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "n8n community node for Bitrix24 — CRM, Tasks, Open Channels, Chatbots, Drive, Document Generator, News Feed and Raw API",
   "keywords": [
     "n8n-community-node-package",
