@@ -13,6 +13,13 @@ import { dealOperations, dealFields, executeDeal } from './resources/crm/deal';
 import { leadOperations, leadFields, executeLead } from './resources/crm/lead';
 import { contactOperations, contactFields, executeContact } from './resources/crm/contact';
 import { companyOperations, companyFields, executeCompany } from './resources/crm/company';
+import {
+	timelineCommentOperations, timelineCommentFields, executeTimelineComment,
+	timelineNoteOperations, timelineNoteFields, executeTimelineNote,
+	timelineBindingOperations, timelineBindingFields, executeTimelineBinding,
+	timelineActivityOperations, timelineActivityFields, executeTimelineActivity,
+} from './resources/crm/timeline';
+import { productRowOperations, productRowFields, executeProductRow } from './resources/crm/productRows';
 
 // ── Tasks ─────────────────────────────────────────────────────────────────────
 import {
@@ -115,6 +122,11 @@ export class Bitrix24 implements INodeType {
 					{ name: 'Lead', value: 'lead' },
 					{ name: 'Contact (Contato)', value: 'contact' },
 					{ name: 'Company (Empresa)', value: 'company' },
+					{ name: 'Timeline Comment', value: 'timelineComment' },
+					{ name: 'Timeline Note', value: 'timelineNote' },
+					{ name: 'Timeline Binding', value: 'timelineBinding' },
+					{ name: 'Timeline Activity', value: 'timelineActivity' },
+					{ name: 'Product Row (Linha de Produto)', value: 'productRow' },
 				],
 				default: 'deal',
 			},
@@ -211,6 +223,11 @@ export class Bitrix24 implements INodeType {
 			...leadOperations,           ...leadFields,
 			...contactOperations,        ...contactFields,
 			...companyOperations,        ...companyFields,
+				...timelineCommentOperations,  ...timelineCommentFields,
+				...timelineNoteOperations,     ...timelineNoteFields,
+				...timelineBindingOperations,  ...timelineBindingFields,
+				...timelineActivityOperations, ...timelineActivityFields,
+				...productRowOperations,       ...productRowFields,
 			...taskOperations,           ...taskFields,
 			...taskCommentOperations,    ...taskCommentFields,
 			...userOperations,           ...userFields,
@@ -260,6 +277,11 @@ export class Bitrix24 implements INodeType {
 					case 'lead':               responseData = await executeLead.call(this, operation, i); break;
 					case 'contact':            responseData = await executeContact.call(this, operation, i); break;
 					case 'company':            responseData = await executeCompany.call(this, operation, i); break;
+					case 'timelineComment':    responseData = await executeTimelineComment.call(this, operation, i); break;
+					case 'timelineNote':       responseData = await executeTimelineNote.call(this, operation, i); break;
+					case 'timelineBinding':    responseData = await executeTimelineBinding.call(this, operation, i); break;
+					case 'timelineActivity':   responseData = await executeTimelineActivity.call(this, operation, i); break;
+					case 'productRow':         responseData = await executeProductRow.call(this, operation, i); break;
 					case 'task':               responseData = await executeTask.call(this, operation, i); break;
 					case 'taskComment':        responseData = await executeTaskComment.call(this, operation, i); break;
 					case 'user':               responseData = await executeUser.call(this, operation, i); break;

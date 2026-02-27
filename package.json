@@ -1,7 +1,7 @@
 {
   "name": "@gustavojosemelo/n8n-nodes-bitrix24",
-  "version": "0.0.6",
-  "description": "n8n community node for Bitrix24 — CRM, Tasks, Open Channels, Chatbots, Drive, Document Generator, News Feed and Raw API",
+  "version": "0.0.8",
+  "description": "n8n community node for Bitrix24 \u2014 CRM, Tasks, Open Channels, Chatbots, Drive, Document Generator, News Feed and Raw API",
   "keywords": [
     "n8n-community-node-package",
     "bitrix24",
@@ -20,7 +20,7 @@
     "url": "https://github.com/gustavojosemelo/n8n-nodes-bitrix24/issues"
   },
   "author": {
-    "name": "Gustavo José Melo",
+    "name": "Gustavo Jos\u00e9 Melo",
     "email": "gustavo@universonext.com.br"
   },
   "repository": {

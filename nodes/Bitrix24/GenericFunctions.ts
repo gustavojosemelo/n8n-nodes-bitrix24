@@ -184,13 +184,35 @@ export async function getCrmCustomFields(
 	const fields = (response.result as IDataObject) || {};
 	const customFields: Array<{ name: string; value: string; description?: string }> = [];
 
+	// Map Bitrix24 field types to n8n-friendly type labels
+	const typeMap: Record<string, string> = {
+		'boolean': 'boolean',
+		'date': 'date',
+		'datetime': 'datetime',
+		'double': 'number',
+		'integer': 'number',
+		'money': 'number',
+		'string': 'string',
+		'text': 'string',
+		'url': 'string',
+		'email': 'string',
+		'phone': 'string',
+		'enumeration': 'options',
+		'crm_status': 'options',
+		'employee': 'string',
+		'file': 'string',
+	};
+
 	for (const [key, meta] of Object.entries(fields)) {
 		if (key.startsWith('UF_')) {
 			const m = meta as IDataObject;
+			const rawType = String(m.type ?? 'string').toLowerCase();
+			const nType = typeMap[rawType] ?? 'string';
 			customFields.push({
 				name: String(m.listLabel ?? m.title ?? key),
-				value: key,
-				description: `Type: ${m.type ?? 'unknown'}`,
+				// Encode type into value so execute() can use the right input
+				value: `${key}|${nType}`,
+				description: `Tipo: ${rawType}`,
 			});
 		}
 	}

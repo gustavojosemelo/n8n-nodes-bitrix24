@@ -1,4 +1,6 @@
-import { INodeProperties } from 'n8n-workflow';
+import { INodeProperties, IExecuteFunctions, IDataObject } from 'n8n-workflow';
+import { bitrix24ApiRequest, bitrix24ApiRequestAllItems } from '../../GenericFunctions';
+import { makePhoneField, makeEmailField, makeCustomFieldsSection, processPhones, processEmails, processCustomFields } from './crmHelpers';
 
 export const leadOperations: INodeProperties[] = [
 	{
@@ -37,7 +39,7 @@ export const leadFields: INodeProperties[] = [
 		displayOptions: { show: { resource: ['lead'], operation: ['create'] } },
 	},
 
-	// ── Fixed fields (create + update) ────────────────────────────────────────
+	// ── Fixed Fields ──────────────────────────────────────────────────────────
 	{
 		displayName: 'Fixed Fields',
 		name: 'fixedFields',
@@ -46,32 +48,15 @@ export const leadFields: INodeProperties[] = [
 		default: {},
 		displayOptions: { show: { resource: ['lead'], operation: ['create', 'update'] } },
 		options: [
-			{
-				displayName: 'Title',
-				name: 'TITLE',
-				type: 'string',
-				default: '',
-				displayOptions: { show: { '/operation': ['update'] } },
-			},
-			{
-				displayName: 'First Name',
-				name: 'NAME',
-				type: 'string',
-				default: '',
-			},
-			{
-				displayName: 'Last Name',
-				name: 'LAST_NAME',
-				type: 'string',
-				default: '',
-			},
+			{ displayName: 'Title', name: 'TITLE', type: 'string', default: '', displayOptions: { show: { '/operation': ['update'] } } },
+			{ displayName: 'First Name', name: 'NAME', type: 'string', default: '' },
+			{ displayName: 'Last Name', name: 'LAST_NAME', type: 'string', default: '' },
 			{
 				displayName: 'Status',
 				name: 'STATUS_ID',
 				type: 'options',
 				typeOptions: { loadOptionsMethod: 'getLeadStatuses' },
 				default: '',
-				description: 'Current status of the lead',
 			},
 			{
 				displayName: 'Responsible User',
@@ -80,87 +65,24 @@ export const leadFields: INodeProperties[] = [
 				typeOptions: { loadOptionsMethod: 'getUsers' },
 				default: '',
 			},
-			{
-				displayName: 'Phone',
-				name: 'PHONE',
-				type: 'string',
-				default: '',
-				description: 'Phone number (main)',
-			},
-			{
-				displayName: 'Email',
-				name: 'EMAIL',
-				type: 'string',
-				default: '',
-			},
-			{
-				displayName: 'Company Name',
-				name: 'COMPANY_TITLE',
-				type: 'string',
-				default: '',
-			},
-			{
-				displayName: 'Amount',
-				name: 'OPPORTUNITY',
-				type: 'number',
-				default: 0,
-			},
-			{
-				displayName: 'Currency',
-				name: 'CURRENCY_ID',
-				type: 'string',
-				default: 'BRL',
-			},
-			{
-				displayName: 'Source',
-				name: 'SOURCE_ID',
-				type: 'string',
-				default: '',
-				description: 'Source ID (CALL, EMAIL, WEB, etc.)',
-			},
-			{
-				displayName: 'Comments',
-				name: 'COMMENTS',
-				type: 'string',
-				typeOptions: { rows: 3 },
-				default: '',
-			},
+			{ displayName: 'Company Name', name: 'COMPANY_TITLE', type: 'string', default: '' },
+			{ displayName: 'Amount', name: 'OPPORTUNITY', type: 'number', default: 0 },
+			{ displayName: 'Currency', name: 'CURRENCY_ID', type: 'string', default: 'BRL' },
+			{ displayName: 'Source', name: 'SOURCE_ID', type: 'string', default: '', description: 'Source ID (CALL, EMAIL, WEB, etc.)' },
+			{ displayName: 'Comments', name: 'COMMENTS', type: 'string', typeOptions: { rows: 3 }, default: '' },
 		],
 	},
 
-	// ── Custom Fields (UF_) ───────────────────────────────────────────────────
-	{
-		displayName: 'Custom Fields (UF_)',
-		name: 'customFields',
-		type: 'fixedCollection',
-		placeholder: 'Add Custom Field',
-		default: {},
-		typeOptions: { multipleValues: true },
-		displayOptions: { show: { resource: ['lead'], operation: ['create', 'update'] } },
-		options: [
-			{
-				displayName: 'Field',
-				name: 'field',
-				values: [
-					{
-						displayName: 'Field Name',
-						name: 'fieldName',
-						type: 'options',
-						typeOptions: { loadOptionsMethod: 'getLeadCustomFields' },
-						default: '',
-					},
-					{
-						displayName: 'Value',
-						name: 'value',
-						type: 'string',
-						default: '',
-					},
-				],
-			},
-		],
-	},
+	// ── Phones ────────────────────────────────────────────────────────────────
+	makePhoneField('lead'),
 
-	// ── List filters ──────────────────────────────────────────────────────────
+	// ── Emails ────────────────────────────────────────────────────────────────
+	makeEmailField('lead'),
+
+	// ── Custom Fields ─────────────────────────────────────────────────────────
+	makeCustomFieldsSection('lead', 'getLeadCustomFields'),
+
+	// ── List ──────────────────────────────────────────────────────────────────
 	{
 		displayName: 'Quick Filters',
 		name: 'quickFilters',
@@ -169,32 +91,10 @@ export const leadFields: INodeProperties[] = [
 		default: {},
 		displayOptions: { show: { resource: ['lead'], operation: ['list'] } },
 		options: [
-			{
-				displayName: 'Status',
-				name: 'STATUS_ID',
-				type: 'options',
-				typeOptions: { loadOptionsMethod: 'getLeadStatuses' },
-				default: '',
-			},
-			{
-				displayName: 'Responsible User',
-				name: 'ASSIGNED_BY_ID',
-				type: 'options',
-				typeOptions: { loadOptionsMethod: 'getUsers' },
-				default: '',
-			},
-			{
-				displayName: 'Created After',
-				name: 'DATE_CREATE_from',
-				type: 'dateTime',
-				default: '',
-			},
-			{
-				displayName: 'Created Before',
-				name: 'DATE_CREATE_to',
-				type: 'dateTime',
-				default: '',
-			},
+			{ displayName: 'Status', name: 'STATUS_ID', type: 'options', typeOptions: { loadOptionsMethod: 'getLeadStatuses' }, default: '' },
+			{ displayName: 'Responsible User', name: 'ASSIGNED_BY_ID', type: 'options', typeOptions: { loadOptionsMethod: 'getUsers' }, default: '' },
+			{ displayName: 'Created After', name: 'DATE_CREATE_from', type: 'dateTime', default: '' },
+			{ displayName: 'Created Before', name: 'DATE_CREATE_to', type: 'dateTime', default: '' },
 		],
 	},
 	{
@@ -209,6 +109,7 @@ export const leadFields: INodeProperties[] = [
 		name: 'limit',
 		type: 'number',
 		default: 50,
+		description: 'Set to 0 to fetch all records',
 		displayOptions: { show: { resource: ['lead'], operation: ['list'] } },
 	},
 	{
@@ -222,9 +123,6 @@ export const leadFields: INodeProperties[] = [
 ];
 
 // ─── Execute ──────────────────────────────────────────────────────────────────
-import { IExecuteFunctions, IDataObject } from 'n8n-workflow';
-import { bitrix24ApiRequest, bitrix24ApiRequestAllItems } from '../../GenericFunctions';
-
 export async function executeLead(
 	this: IExecuteFunctions,
 	operation: string,
@@ -234,12 +132,18 @@ export async function executeLead(
 
 	if (operation === 'create') {
 		const title = this.getNodeParameter('title', i) as string;
-		const fixedFields = this.getNodeParameter('fixedFields', i, {}) as IDataObject;
+		const fixed = this.getNodeParameter('fixedFields', i, {}) as IDataObject;
+		const phonesRaw = this.getNodeParameter('phones', i, {}) as IDataObject;
+		const emailsRaw = this.getNodeParameter('emails', i, {}) as IDataObject;
 		const customFieldsRaw = this.getNodeParameter('customFields', i, {}) as IDataObject;
-		const fields: IDataObject = { TITLE: title, ...fixedFields };
-		for (const cf of (customFieldsRaw.field as IDataObject[]) || []) {
-			fields[cf.fieldName as string] = cf.value;
-		}
+
+		const fields: IDataObject = { TITLE: title, ...fixed };
+		const phones = processPhones(phonesRaw);
+		if (phones) fields.PHONE = phones;
+		const emails = processEmails(emailsRaw);
+		if (emails) fields.EMAIL = emails;
+		Object.assign(fields, processCustomFields(customFieldsRaw));
+
 		const res = await bitrix24ApiRequest.call(this, 'POST', 'crm.lead.add', { fields });
 		responseData = { id: res.result, success: true };
 	}
@@ -250,12 +154,18 @@ export async function executeLead(
 	}
 	else if (operation === 'update') {
 		const id = this.getNodeParameter('leadId', i) as string;
-		const fixedFields = this.getNodeParameter('fixedFields', i, {}) as IDataObject;
+		const fixed = this.getNodeParameter('fixedFields', i, {}) as IDataObject;
+		const phonesRaw = this.getNodeParameter('phones', i, {}) as IDataObject;
+		const emailsRaw = this.getNodeParameter('emails', i, {}) as IDataObject;
 		const customFieldsRaw = this.getNodeParameter('customFields', i, {}) as IDataObject;
-		const fields: IDataObject = { ...fixedFields };
-		for (const cf of (customFieldsRaw.field as IDataObject[]) || []) {
-			fields[cf.fieldName as string] = cf.value;
-		}
+
+		const fields: IDataObject = { ...fixed };
+		const phones = processPhones(phonesRaw);
+		if (phones) fields.PHONE = phones;
+		const emails = processEmails(emailsRaw);
+		if (emails) fields.EMAIL = emails;
+		Object.assign(fields, processCustomFields(customFieldsRaw));
+
 		const res = await bitrix24ApiRequest.call(this, 'POST', 'crm.lead.update', { id, fields });
 		responseData = { success: res.result as boolean };
 	}
@@ -272,16 +182,16 @@ export async function executeLead(
 		try { advancedFilter = JSON.parse(advancedRaw); } catch (_) {}
 		const filter = { ...quickFilters, ...advancedFilter };
 		if (limit === 0) {
-			const items = await bitrix24ApiRequestAllItems.call(this, 'POST', 'crm.lead.list', { filter, select: ['*', 'UF_*'] });
+			const items = await bitrix24ApiRequestAllItems.call(this, 'POST', 'crm.lead.list', { filter, select: ['*', 'UF_*', 'PHONE', 'EMAIL'] });
 			responseData = { items, total: items.length };
 		} else {
-			const res = await bitrix24ApiRequest.call(this, 'POST', 'crm.lead.list', { filter, select: ['*', 'UF_*'], start: 0 });
+			const res = await bitrix24ApiRequest.call(this, 'POST', 'crm.lead.list', { filter, select: ['*', 'UF_*', 'PHONE', 'EMAIL'], start: 0 });
 			responseData = { items: res.result, total: res.total };
 		}
 	}
 	else if (operation === 'search') {
 		const query = this.getNodeParameter('searchQuery', i) as string;
-		const res = await bitrix24ApiRequest.call(this, 'POST', 'crm.lead.list', { filter: { '%TITLE': query }, select: ['*'] });
+		const res = await bitrix24ApiRequest.call(this, 'POST', 'crm.lead.list', { filter: { '%TITLE': query }, select: ['*', 'PHONE', 'EMAIL'] });
 		responseData = { items: res.result, total: res.total };
 	}
 
