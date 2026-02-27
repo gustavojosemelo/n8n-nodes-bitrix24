@@ -1,6 +1,6 @@
 {
   "name": "@gustavojosemelo/n8n-nodes-bitrix24",
-  "version": "0.0.4",
+  "version": "0.0.3",
   "description": "n8n community node for Bitrix24 — CRM, Tasks, Open Channels, Chatbots, Drive, Document Generator, News Feed and Raw API",
   "keywords": [
     "n8n-community-node-package",
@@ -29,7 +29,7 @@
   },
   "main": "index.js",
   "scripts": {
-    "build": "tsc && copy nodes\\Bitrix24\\bitrix24.svg dist\\nodes\\Bitrix24\\bitrix24.svg",
+    "build": "tsc",
     "dev": "tsc --watch",
     "format": "prettier nodes credentials --write",
     "lint": "eslint nodes credentials package.json",
@@ -42,7 +42,7 @@
   "n8n": {
     "n8nNodesApiVersion": 1,
     "credentials": [
-      "dist/credentials/Bitrix24Api.credentials.js"
+      "dist/nodes/Bitrix24/credentials/Bitrix24Api.credentials.js"
     ],
     "nodes": [
       "dist/nodes/Bitrix24/Bitrix24.node.js",
