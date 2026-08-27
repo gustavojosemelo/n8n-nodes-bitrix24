@@ -1,0 +1,146 @@
+// Fonte de verdade da configuracao de precos regionais.
+// O Shopify e o DESTINO do sync: em caso de divergencia, o app reconcilia
+// banco -> Shopify, nunca o contrario.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Shop {
+  id            String    @id @default(cuid())
+  shopDomain    String    @unique // loja.myshopify.com
+  accessToken   String // criptografado em repouso (AES-256-GCM)
+  scope         String?
+  isActive      Boolean   @default(true)
+  installedAt   DateTime  @default(now())
+  uninstalledAt DateTime?
+
+  regions  Region[]
+  settings Settings?
+  syncJobs SyncJob[]
+  products ShopProduct[]
+}
+
+model Settings {
+  id     String @id @default(cuid())
+  shopId String @unique
+  shop   Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  defaultRegionId String? // fallback quando CEP nao reconhecido
+  popupTitle      String  @default("Selecione sua regiao")
+  popupSubtitle   String?
+  popupMode       String  @default("cep") // "cep" | "cidade" | "ambos"
+  blockNavigation Boolean @default(true) // pop-up obrigatorio
+
+  // Loop Commerce: associar os selling plans do produto as variantes regionais
+  attachSellingPlans Boolean @default(true)
+
+  // Destino opcional de alerta quando um SyncJob falha (Etapa 10.5)
+  alertWebhookUrl String?
+
+  updatedAt DateTime @updatedAt
+}
+
+model Region {
+  id        String   @id @default(cuid())
+  shopId    String
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  name      String // ex: "Campina Grande - Centro"
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  matchers RegionMatcher[]
+  prices   RegionPrice[]
+
+  @@unique([shopId, name])
+  @@index([shopId, isActive])
+}
+
+model RegionMatcher {
+  id       String @id @default(cuid())
+  regionId String
+  region   Region @relation(fields: [regionId], references: [id], onDelete: Cascade)
+
+  type     String // "cep_range" | "cep_exact" | "city"
+  cepStart String? // "58400000" (somente digitos)
+  cepEnd   String?
+  city     String?
+  state    String?
+
+  @@index([regionId])
+}
+
+model RegionPrice {
+  id       String @id @default(cuid())
+  regionId String
+  region   Region @relation(fields: [regionId], references: [id], onDelete: Cascade)
+
+  shopifyProductId String // gid://shopify/Product/123
+  shopifyVariantId String? // preenchido apos sync
+  price            Decimal  @db.Decimal(10, 2)
+  compareAtPrice   Decimal? @db.Decimal(10, 2)
+  isAvailable      Boolean  @default(true) // produto nao vendido nessa regiao
+  syncStatus       String   @default("pending") // pending | synced | error
+  syncError        String?
+  syncedAt         DateTime?
+  updatedAt        DateTime @updatedAt
+
+  @@unique([regionId, shopifyProductId])
+  @@index([regionId, syncStatus])
+}
+
+model SyncJob {
+  id     String @id @default(cuid())
+  shopId String
+  shop   Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  // "region_create" | "region_update" | "region_delete"
+  // | "product_backfill" | "reconcile" | "catalog_sync"
+  type   String
+  status String @default("queued") // queued | running | done | failed
+
+  payload Json
+  error   String?
+
+  regionId      String?
+  attempts      Int     @default(0)
+  progressTotal Int     @default(0)
+  progressDone  Int     @default(0)
+
+  createdAt  DateTime  @default(now())
+  startedAt  DateTime?
+  finishedAt DateTime?
+
+  @@index([shopId, status])
+  @@index([status, createdAt])
+}
+
+// Espelho do catalogo da Shopify. Nao e fonte de verdade de preco:
+// existe para o wizard e o painel de saude nao dependerem de uma chamada
+// a Admin API a cada render (e para o denominador de "12 de 12 produtos").
+model ShopProduct {
+  id     String @id @default(cuid())
+  shopId String
+  shop   Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  shopifyProductId String // gid://shopify/Product/123
+  title            String
+  handle           String?
+  sku              String?
+  status           String   @default("ACTIVE")
+  basePrice        Decimal? @db.Decimal(10, 2)
+  imageUrl         String?
+  hasRegionOption  Boolean  @default(false)
+  syncedAt         DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([shopId, shopifyProductId])
+  @@index([shopId, status])
+}
